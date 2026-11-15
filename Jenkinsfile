@@ -2,8 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Lecture dynamique de la version depuis releases.txt pour taguer l'image
-        VERSION = sh(script: "awk '\$1==\"VERSION\"{print \$2}' releases.txt", returnStdout: true).trim()
         IMAGE_NAME = "ic-webapp"
     }
 
@@ -17,19 +15,26 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo "Construction de l'image Docker ${IMAGE_NAME}:${VERSION}..."
-                // Le Dockerfile lit automatiquement les URL dans releases.txt grâce à awk
-                sh "docker build -t ${IMAGE_NAME}:${VERSION} -t ${IMAGE_NAME}:latest ."
+                script {
+                    // Lecture dynamique de la version après le checkout et nettoyage des retours chariot Windows (\r)
+                    env.VERSION = sh(
+                        script: "awk -F'[= ]+' '\$1==\"VERSION\"{print \$2}' releases.txt | tr -d '\\r'",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Construction de l'image Docker ${IMAGE_NAME}:${env.VERSION}..."
+                    sh "docker build -t ${IMAGE_NAME}:${env.VERSION} -t ${IMAGE_NAME}:latest ."
+                }
             }
         }
 
         stage('Test Application') {
             steps {
                 echo "Lancement d'un conteneur de test pour valider l'application..."
-                // Lancement d'un test rapide pour vérifier que Flask répond
-                sh "docker run -d --name test-ic-webapp -p 8080:8080 ${IMAGE_NAME}:${VERSION}"
+                // Utilisation du port 8081 en externe pour ne pas entrer en conflit avec Jenkins (8080)
+                sh "docker run -d --name test-ic-webapp -p 8081:8080 ${IMAGE_NAME}:${env.VERSION}"
                 // Attente de démarrage puis test HTTP simple
-                sh "sleep 3 && curl -I http://localhost:8080 || exit 1"
+                sh "sleep 3 && curl -I http://localhost:8081 || (docker rm -f test-ic-webapp && exit 1)"
                 // Nettoyage du conteneur de test
                 sh "docker rm -f test-ic-webapp"
             }
