@@ -39,12 +39,9 @@ pipeline {
                 echo "Lancement d'un conteneur de test sur le port 8082..."
                 sh "docker run -d --name test-ic-webapp -p 8082:8080 ${IMAGE_NAME}:${env.VERSION}"
                 
-                // Test robuste avec boucle de réessais (5 tentatives espacées de 2 secondes)
+                // Test robuste avec réessais, écrit sur une seule ligne pour éviter les erreurs d'indentation
                 sh """
-                    python3 -c "
-                    import urllib.request, time
-                    url = 'http://localhost:8082'
-                    success = False
+                    python3 -c "import urllib.request, time; url='http://localhost:8082'; success=False; 
                     for i in range(5):
                         try:
                             res = urllib.request.urlopen(url, timeout=2)
@@ -54,9 +51,7 @@ pipeline {
                         except Exception as e:
                             print(f'Tentative {i+1} échouée: {e}')
                             time.sleep(2)
-                    if not success:
-                        exit(1)
-                    " || (
+                    if not success: exit(1)" || (
                         echo "--- ERREUR : ECHEC DU TEST DE CONNEXION ---"
                         docker logs test-ic-webapp
                         docker rm -f test-ic-webapp
