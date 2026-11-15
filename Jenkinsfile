@@ -39,9 +39,23 @@ pipeline {
                 echo "Lancement d'un conteneur de test pour valider l'application..."
                 // Utilisation du port 8081 en externe pour ne pas entrer en conflit avec Jenkins (8080)
                 sh "docker run -d --name test-ic-webapp -p 8081:8080 ${IMAGE_NAME}:${env.VERSION}"
-                // Attente de démarrage puis test HTTP simple
-                sh "sleep 3 && curl -I http://localhost:8081 || (docker rm -f test-ic-webapp && exit 1)"
-                // Nettoyage du conteneur de test
+                
+                // Attente de démarrage du serveur Flask
+                sh "sleep 3"
+                
+                // Test HTTP simple avec affichage des logs du conteneur si échec
+                sh """
+                    curl -I http://localhost:8081 || (
+                        echo "--- ERREUR : ECHEC DU TEST CURL ---"
+                        echo "Affichage des logs du conteneur pour diagnostic :"
+                        docker logs test-ic-webapp
+                        echo "-----------------------------------"
+                        docker rm -f test-ic-webapp
+                        exit 1
+                    )
+                """
+                
+                // Nettoyage du conteneur de test en cas de succès
                 sh "docker rm -f test-ic-webapp"
             }
         }
