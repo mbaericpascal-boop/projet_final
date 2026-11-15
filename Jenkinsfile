@@ -16,11 +16,17 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Lecture dynamique de la version après le checkout et nettoyage des retours chariot Windows (\r)
+                    // Extraction robuste de la version, compatible avec tous les formats de releases.txt
                     env.VERSION = sh(
-                        script: "awk -F'[= ]+' '\$1==\"VERSION\"{print \$2}' releases.txt | tr -d '\\r'",
+                        script: "grep -i 'VERSION' releases.txt | awk -F'[:= ]+' '{print \$NF}' | tr -d '\\r' | tr -d ' \"'",
                         returnStdout: true
                     ).trim()
+
+                    echo "Version détectée : '${env.VERSION}'"
+
+                    if (env.VERSION == "") {
+                        error("Erreur critique : La version lue dans releases.txt est vide !")
+                    }
 
                     echo "Construction de l'image Docker ${IMAGE_NAME}:${env.VERSION}..."
                     sh "docker build -t ${IMAGE_NAME}:${env.VERSION} -t ${IMAGE_NAME}:latest ."
