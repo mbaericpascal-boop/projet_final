@@ -2,12 +2,13 @@ FROM python:3.6-alpine
 
 WORKDIR /opt
 
-# Copier l'intégralité du projet (y compris templates et releases.txt)
+# Copier l'intégralité du projet
 COPY . /opt/
 
-# Installer les dépendances Flask
-RUN pip install flask
+# Installer explicitement Flask et les dépendances nécessaires
+RUN pip install --no-cache-dir flask
 
 EXPOSE 8080
 
-ENTRYPOINT ["python", "app.py"]
+# Lancer l'application Flask
+CMD ["python", "app.py"]
