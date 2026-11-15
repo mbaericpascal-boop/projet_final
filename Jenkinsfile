@@ -35,35 +35,27 @@ pipeline {
         }
 
         stage('Test Application') {
-        steps {
-            echo "Lancement d'un conteneur de test pour valider l'application..."
-            sh "docker run -d --name test-ic-webapp -p 8081:8080 ${IMAGE_NAME}:${env.VERSION}"
-            
-            // Attente de démarrage du serveur Flask
-            sh "sleep 3"
-            
-            // Test de connexion HTTP via Python (pas besoin de curl)
-            sh """
-                python3 -c "
-                import urllib.request
-                try:
-                    response = urllib.request.urlopen('http://localhost:8081')
-                    print('Succès HTTP:', response.getcode())
-                except Exception as e:
-                    print('Erreur de connexion:', e)
-                    exit(1)
-                " || (
-                    echo "--- ERREUR : ECHEC DU TEST DE CONNEXION ---"
-                    docker logs test-ic-webapp
-                    docker rm -f test-ic-webapp
-                    exit 1
-                )
-            """
-            
-            // Nettoyage en cas de succès
-            sh "docker rm -f test-ic-webapp"
+            steps {
+                echo "Lancement d'un conteneur de test pour valider l'application..."
+                sh "docker run -d --name test-ic-webapp -p 8081:8080 ${IMAGE_NAME}:${env.VERSION}"
+                
+                // Attente de démarrage du serveur Flask
+                sh "sleep 3"
+                
+                // Test de connexion HTTP en ligne unique (évite les erreurs d'indentation)
+                sh """
+                    python3 -c "import urllib.request; print('Succès HTTP:', urllib.request.urlopen('http://localhost:8081').getcode())" || (
+                        echo "--- ERREUR : ECHEC DU TEST DE CONNEXION ---"
+                        docker logs test-ic-webapp
+                        docker rm -f test-ic-webapp
+                        exit 1
+                    )
+                """
+                
+                // Nettoyage en cas de succès
+                sh "docker rm -f test-ic-webapp"
+            }
         }
-    }
 
         stage('Deploy with Ansible') {
             steps {
