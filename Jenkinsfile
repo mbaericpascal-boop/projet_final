@@ -33,30 +33,29 @@ pipeline {
                 }
             }
         }
-
-        stage('Test Application') {
-            steps {
-                echo "Lancement d'un conteneur de test pour valider l'application..."
-                sh "docker run -d --name test-ic-webapp -p 8081:8080 ${IMAGE_NAME}:${env.VERSION}"
-                
-                // Attente de démarrage du serveur Flask
-                sh "sleep 3"
-                
-                // Test de connexion HTTP en ligne unique (évite les erreurs d'indentation)
-                sh """
-                    python3 -c "import urllib.request; print('Succès HTTP:', urllib.request.urlopen('http://localhost:8081').getcode())" || (
-                        echo "--- ERREUR : ECHEC DU TEST DE CONNEXION ---"
-                        docker logs test-ic-webapp
-                        docker rm -f test-ic-webapp
-                        exit 1
-                    )
-                """
-                
-                // Nettoyage en cas de succès
-                sh "docker rm -f test-ic-webapp"
-            }
+stage('Test Application') {
+        steps {
+            echo "Lancement d'un conteneur de test sur le port 8082..."
+            // Utilisation du port 8082 en externe pour éviter le conflit
+            sh "docker run -d --name test-ic-webapp -p 8082:8080 ${IMAGE_NAME}:${env.VERSION}"
+            
+            // Attente de démarrage du serveur Flask
+            sh "sleep 3"
+            
+            // Test de connexion HTTP sur le port 8082
+            sh """
+                python3 -c "import urllib.request; print('Succès HTTP:', urllib.request.urlopen('http://localhost:8082').getcode())" || (
+                    echo "--- ERREUR : ECHEC DU TEST DE CONNEXION ---"
+                    docker logs test-ic-webapp
+                    docker rm -f test-ic-webapp
+                    exit 1
+                )
+            """
+            
+            // Nettoyage en cas de succès
+            sh "docker rm -f test-ic-webapp"
         }
-
+    }
         stage('Deploy with Ansible') {
             steps {
                 echo "Déploiement des applications Odoo et pgAdmin via les rôles Ansible..."
