@@ -60,7 +60,7 @@ pipeline {
         stage('Deploy with Ansible') {
             steps {
                 echo "Déploiement des applications Odoo et pgAdmin via les rôles Ansible..."
-                // Exécution du playbook Ansible principal qui appelle odoo_role et pgadmin_role
+                // Exécution du playbook Ansible principal
                 sh "ansible-playbook -i localhost, -c local playbook.yaml"
             }
         }
