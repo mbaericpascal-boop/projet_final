@@ -5,7 +5,7 @@ WORKDIR /opt
 # Copier l'intégralité du projet
 COPY . /opt/
 
-# Installer Flask
+# Installer les dépendances Flask
 RUN pip install --no-cache-dir flask
 
 EXPOSE 8080
