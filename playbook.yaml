@@ -1,7 +1,14 @@
----
 - hosts: localhost
   connection: local
-  become: yes
+  become: yes  # Permet d'exécuter les tâches avec les privilèges root (nécessaire pour Docker)
+  
   roles:
     - odoo_role
     - pgadmin_role
+  tasks:
+    - name: Inclure les rôles de déploiement
+      include_role:
+        name: "{{ item }}"
+      loop:
+        - odoo_role
+        - pgadmin_role

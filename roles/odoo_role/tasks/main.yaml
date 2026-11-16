@@ -1,0 +1,33 @@
+---
+- name: Créer un réseau Docker pour Odoo et sa base de données
+  docker_network:
+    name: odoo_network
+    state: present
+
+- name: Lancer le conteneur PostgreSQL pour Odoo
+  docker_container:
+    name: odoo-db
+    image: postgres:15
+    state: started
+    restart_policy: always
+    networks:
+      - name: odoo_network
+    env:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo_password
+
+- name: Lancer le conteneur Odoo
+  docker_container:
+    name: odoo-app
+    image: odoo:16.0
+    state: started
+    restart_policy: always
+    published_ports:
+      - "8069:8069"
+    networks:
+      - name: odoo_network
+    env:
+      HOST: odoo-db
+      USER: odoo
+      PASSWORD: odoo_password
